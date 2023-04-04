@@ -24,7 +24,7 @@ int mac_table_len;
  Returns a pointer (eg. &rtable[i]) to the best matching route, or NULL if there
  is no matching route.
 */
-struct route_table_entry *get_best_route(uint32_t ip_dest) {
+struct route_table_entry *get_best_route(uint32_t ip_dest, struct route_table_entry* rtable) {
 	for (int i = 0; i < rtable_len; ++i) {
 		if (rtable[i].prefix == (ip_dest & rtable[i].mask)) {
 			return &rtable[i];
@@ -127,34 +127,39 @@ int main(int argc, char *argv[])
 
 		if (check_sum != old_check) {
 			fprintf(stderr, "Bad checksum ... dropping\n");
-		} else {
-			struct route_table_entry* best_router = get_best_route(ip_hdr->daddr);
-
-			if (best_router == NULL) {
-				fprintf(stderr, "Packet dropped via null route.\n");
-			} else {
-				fprintf(stderr, "Interface: %d\n", best_router->interface);
-				if (ip_hdr->ttl >= 1) {
-					ip_hdr->check = 0;
-					ip_hdr->check = ~(~old_check + ~((uint16_t)ip_hdr->ttl) + (uint16_t)(ip_hdr->ttl - 1)) - 1;
-					ip_hdr->ttl -= 1;
-
-					struct mac_entry* entry = get_mac_entry(best_router->next_hop);
-
-					if (entry == NULL) {
-						fprintf(stderr, "Packet dropped via invalid mac.\n");
-					} else {
-						memcpy(eth_hdr->ether_dhost, entry->mac, 6);
-						get_interface_mac(best_router->interface, eth_hdr->ether_shost);
-
-						fprintf(stderr, "Packet sent.\n");
-						send_to_link(best_router->interface, packet, packet_len);
-					}
-				} else {
-					fprintf(stderr, "Packet dropped via TTL.\n");
-				}
-			}	
+			continue;
 		}
+
+		struct route_table_entry* best_route = get_best_route(ip_hdr->daddr, rtable);
+
+		if (best_route == NULL) {
+			fprintf(stderr, "NULL route... dropping\n");
+			continue;
+		}
+
+		fprintf(stderr, "Interface: %d\n", best_route->interface);
+
+		if (ip_hdr->ttl < 1) {
+			fprintf(stderr, "TTL less than one... dropping\n");
+			continue;
+		}
+
+		ip_hdr->check = 0;
+		ip_hdr->check = ~(~old_check + ~((uint16_t)ip_hdr->ttl) + (uint16_t)(ip_hdr->ttl - 1)) - 1;
+		ip_hdr->ttl -= 1;
+
+		struct mac_entry* entry = get_mac_entry(best_route->next_hop);
+
+		if (entry == NULL) {
+			fprintf(stderr, "MAC not found in table... dropping\n");
+			continue;
+		}
+
+		memcpy(eth_hdr->ether_dhost, entry->mac, 6);
+		get_interface_mac(best_route->interface, eth_hdr->ether_shost);
+
+		fprintf(stderr, "Packet sent.\n");
+		send_to_link(best_route->interface, packet, packet_len);
 	}
 }
 
