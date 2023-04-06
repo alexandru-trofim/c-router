@@ -36,6 +36,13 @@ struct arp_entry {
     uint8_t mac[6];
 };
 
+//define the struct node 
+struct TrieNode {
+    struct TrieNode* left;
+    struct TrieNode* right;
+    struct route_table_entry* rt_entry;
+};
+
 char *get_interface_ip(int interface);
 
 /**
@@ -87,6 +94,18 @@ int read_rtable(const char *path, struct route_table_entry *rtable);
 int parse_arp_table(char *path, struct arp_entry *arp_table);
 
 void init(int argc, char *argv[]);
+
+
+/*Section with Trie functions*/
+
+struct TrieNode* create_node();
+uint8_t get_mask_length(struct route_table_entry* rt_entry);
+void insert_ip(struct TrieNode *root, struct route_table_entry* rt_entry);
+struct TrieNode* fill_trie_with_ip(struct route_table_entry* rt_entry, int rtable_len);
+struct route_table_entry* get_best_route_trie(uint32_t ip_dest, struct TrieNode* root);
+
+
+
 
 #define DIE(condition, message, ...) \
 	do { \

@@ -68,17 +68,14 @@ int main(int argc, char *argv[])
 	rtable_len = read_rtable(argv[1], rtable);
 	mac_table_len = parse_arp_table("arp_table.txt", mac_table);
 
+	/*Here we create our Trie with all IP's*/
+	struct TrieNode* rt_table_trie = fill_trie_with_ip(rtable, rtable_len);
+
 	while (1) {
-		/* We call get_packet to receive a packet. get_packet returns
-		the interface it has received the data from. And writes to
-		len the size of the packet. */
 		interface = recv_from_any_link(packet, &packet_len);
 		DIE(interface < 0, "get_message");
 		printf("We have received a packet\n");
 		
-		/* Extract the Ethernet header from the packet. Since protocols are
-		 * stacked, the first header is the ethernet header, the next header is
-		 * at m.payload + sizeof(struct ether_header) */
 		struct ether_header *eth_hdr = (struct ether_header *) packet;
 		struct iphdr *ip_hdr = (struct iphdr *)(packet + sizeof(struct ether_header));
 
@@ -87,23 +84,24 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
+		//Compute checksum
 		uint16_t old_check = ip_hdr->check;
 		ip_hdr->check = 0;
-		uint16_t check_sum = htons( checksum((uint16_t *)ip_hdr, sizeof(struct iphdr)));
+		uint16_t check_sum = htons(checksum((uint16_t *)ip_hdr, sizeof(struct iphdr)));
 
 		if (check_sum != old_check) {
 			fprintf(stderr, "Bad checksum ... dropping\n");
 			continue;
 		}
 
-		struct route_table_entry* best_route = get_best_route(ip_hdr->daddr);
+		struct route_table_entry* best_route = get_best_route_trie(ip_hdr->daddr, rt_table_trie);
 
 		if (best_route == NULL) {
 			fprintf(stderr, "NULL route... dropping\n");
 			continue;
 		}
 
-		fprintf(stderr, "Interface: %d\n", best_route->interface);
+		fprintf(stderr, "InterfAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaace: \n");
 
 		if (ip_hdr->ttl < 1) {
 			fprintf(stderr, "TTL less than one... dropping\n");
