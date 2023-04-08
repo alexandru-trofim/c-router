@@ -43,6 +43,13 @@ struct TrieNode {
     struct route_table_entry* rt_entry;
 };
 
+struct packet {
+	char* buf;
+	uint32_t buf_len;
+	uint32_t next_hop;
+	uint32_t interface;
+};
+
 char *get_interface_ip(int interface);
 
 /**
@@ -104,7 +111,7 @@ void insert_ip(struct TrieNode *root, struct route_table_entry* rt_entry);
 struct TrieNode* fill_trie_with_ip(struct route_table_entry* rt_entry, int rtable_len);
 struct route_table_entry* get_best_route_trie(uint32_t ip_dest, struct TrieNode* root);
 
-
+char* create_arp_packet(uint8_t* sender_mac, uint32_t sender_ip, uint32_t dest_ip);
 
 
 #define DIE(condition, message, ...) \

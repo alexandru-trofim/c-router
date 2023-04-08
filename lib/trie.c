@@ -30,7 +30,6 @@ uint8_t get_mask_length(struct route_table_entry* rt_entry) {
 
 void insert_ip(struct TrieNode *root, struct route_table_entry* rt_entry) {
     uint8_t mask_length = get_mask_length(rt_entry);
-
     uint32_t prefix = ntohl(rt_entry->prefix);
     struct TrieNode *root_copy = root;
     //computed the mask length 
@@ -39,11 +38,9 @@ void insert_ip(struct TrieNode *root, struct route_table_entry* rt_entry) {
     while (mask_length > 0) {
         //two cases I have bit 1 or 0
         if ((prefix & (1 << i)) == 0) {
-            fprintf(stderr, "current bit is 0 ");
             //bit is 0 
             //now we have another two cases whether there is a node already or not 
             if (root_copy->left == NULL) {
-                fprintf(stderr, "new node is created\n");
                 // add new node 
                 struct TrieNode* new_node = create_node();
                 root_copy->left = new_node;
@@ -53,10 +50,8 @@ void insert_ip(struct TrieNode *root, struct route_table_entry* rt_entry) {
                 root_copy = root_copy->left;
             }
         } else {
-            fprintf(stderr, "current bit is 1 ");
             //bit is 1
             if (root_copy->right == NULL) {
-                fprintf(stderr, "new node is created \n");
                 // add new node 
                 struct TrieNode* new_node = create_node();
                 root_copy->right = new_node;
