@@ -71,15 +71,10 @@ int main(int argc, char *argv[])
 
 				//now change the sender addresses to dest addresses
 				memcpy(eth_hdr->ether_dhost, arp_hdr->sha, 6);
-
 				arp_hdr->tpa = arp_hdr->spa;
-
 				memcpy(arp_hdr->tha, arp_hdr->sha, 6);
-
 				arp_hdr->spa = router_ip;
-
 				memcpy(arp_hdr->sha, router_mac, 6);
-				
 				memcpy(eth_hdr->ether_shost, router_mac, 6);
 				
 				arp_hdr->op = htons(2);
@@ -121,27 +116,41 @@ int main(int argc, char *argv[])
 
 			ip_hdr = (struct iphdr *)(packet + sizeof(struct ether_header));
 
+			uint32_t destination_ip;
+			inet_pton(AF_INET, get_interface_ip(interface), &destination_ip);
+			if (ip_hdr->daddr == destination_ip) {
+				fprintf(stderr, "message addressed to the router\n");
+				char *icmp_reply = create_icmp_good_packet(packet, packet_len);
+				send_to_link(interface, icmp_reply, packet_len);
+				continue;
+			}
+
 			//Compute checksum
 			uint16_t old_check = ip_hdr->check;
 			ip_hdr->check = 0;
 			uint16_t check_sum = htons(checksum((uint16_t *)ip_hdr, sizeof(struct iphdr)));
 
 			if (check_sum != old_check) {
-				fprintf(stderr, "Bad checksum ... dropping\n");
+				fprintf(stderr, "BAD CHECKSUM\n");
 				continue;
 			}
 
 			struct route_table_entry* best_route = get_best_route_trie(ip_hdr->daddr, rt_table_trie);
 
 			if (best_route == NULL) {
-				fprintf(stderr, "NULL route... dropping\n");
+				fprintf(stderr, "NULL ROUTE\n");
+				char* icmp_response = create_icmp_bad_packet(packet, packet_len, 3, interface);
+				uint32_t size_packet = sizeof(struct ether_header) + 2 * sizeof(struct iphdr) + sizeof(struct icmphdr) + 8;
+				send_to_link(interface, icmp_response, size_packet);
+
 				continue;
 			}
 
-			fprintf(stderr, "Interface: %d\n", best_route->interface);
-
-			if (ip_hdr->ttl < 1) {
-				fprintf(stderr, "TTL less than one... dropping\n");
+			if (ip_hdr->ttl <= 1) {
+				fprintf(stderr, "TTL IS 0\n");
+				char* icmp_response = create_icmp_bad_packet(packet, packet_len, 11, interface);
+				uint32_t size_packet = sizeof(struct ether_header) + 2 * sizeof(struct iphdr) + sizeof(struct icmphdr) + 8;
+				send_to_link(interface, icmp_response, size_packet);
 				continue;
 			}
 

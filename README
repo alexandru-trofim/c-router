@@ -1,0 +1,49 @@
+Router-ul este implementat in functia router.c: 
+    Explicatie: 
+    
+    while(1) {
+        receive packet
+        if packet is arp {
+            if packet is arp request {
+                send arp reply
+            } else if reply {
+                add arp_entry to arp_table
+                while(packet queue not empty) {
+                    check if packet dest addr is equal with new arp_entry address
+                    if true {
+                        send packet
+                    } else {
+                        add packet to a new queue
+                    }
+                }
+                old queue = new queue
+            }
+        } else if packet is ipv4 {
+            if destination is router {
+                create icmp response and send to the sender
+            }
+
+            compute checksum
+            drop packes if checksum is bad 
+
+            find next hop 
+
+            if next hop not found {
+                send icmp destination unreachable
+            }
+
+            compute new checksum
+
+            find mac of next hop
+
+            if mac not found {
+                send arp request to find the mac 
+            }
+
+            send packet;
+        }
+    }
+
+LPM is implemented with trie structure as in the link below
+https://www.lewuathe.com/longest-prefix-match-with-trie-tree.html
+

@@ -112,6 +112,8 @@ struct TrieNode* fill_trie_with_ip(struct route_table_entry* rt_entry, int rtabl
 struct route_table_entry* get_best_route_trie(uint32_t ip_dest, struct TrieNode* root);
 
 char* create_arp_packet(uint8_t* sender_mac, uint32_t sender_ip, uint32_t dest_ip);
+char* create_icmp_good_packet(char* packet, size_t packet_len);
+char* create_icmp_bad_packet(char* packet, size_t packet_len, uint8_t type, int interface);
 
 
 #define DIE(condition, message, ...) \
